@@ -21,7 +21,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       // Initialize socket connection
-      const newSocket = io('http://localhost:5000', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const newSocket = io(apiUrl, {
         auth: { token: localStorage.getItem('token') }
       });
 
