@@ -362,7 +362,7 @@ const GuestBookings = () => {
                       </div>
                     </div>
                     <a
-                      href={`http://localhost:5000${selectedBooking.reportPath}`}
+                      href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${selectedBooking.reportPath}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-primary"
