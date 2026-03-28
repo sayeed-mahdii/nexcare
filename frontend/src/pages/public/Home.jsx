@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar';
 import Footer from '../../components/common/Footer';
+import heroDoctorImg from '../../assets/images/hero-doctor.png';
 
 import { 
   ArrowRight, 
@@ -203,7 +204,7 @@ const Home = () => {
                 {/* Main Image Container */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[450px] h-[500px] rounded-3xl overflow-hidden shadow-2xl">
                   <img 
-                    src="/src/assets/images/hero-doctor.png" 
+                    src={heroDoctorImg}
                     alt="NEXCARE Healthcare Professional" 
                     className="w-full h-full object-cover object-center"
                   />
