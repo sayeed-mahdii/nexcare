@@ -128,12 +128,14 @@ const GuestDashboard = () => {
 
   const downloadReport = () => {
     if (booking?.reportPath) {
-      window.open(`http://localhost:5000${booking.reportPath}`, '_blank');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      window.open(`${apiUrl}${booking.reportPath}`, '_blank');
     }
   };
 
   const downloadReceipt = () => {
-    window.open(`http://localhost:5000/api/diagnostics/guest-booking/${accessCode}/receipt`, '_blank');
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.open(`${apiUrl}/api/diagnostics/guest-booking/${accessCode}/receipt`, '_blank');
   };
 
   const formatDate = (dateString) => {
