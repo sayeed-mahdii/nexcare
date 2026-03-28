@@ -1,0 +1,418 @@
+// Prisma Schema for NEXCARE Healthcare System
+// Matches University of Chittagong CSE616 capstone design
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Administrator
+  Doctor
+  Patient
+  Pathologist
+}
+
+enum Gender {
+  Male
+  Female
+  Other
+}
+
+enum AppointmentStatus {
+  Scheduled
+  Completed
+  Cancelled
+}
+
+enum ReportStatus {
+  Pending
+  Completed
+  Reviewed
+}
+
+enum GuestBookingStatus {
+  Pending
+  Approved
+  Completed
+  Cancelled
+}
+
+model User {
+  id           String   @id @default(cuid())
+  role         Role
+  gender       Gender
+  firstName    String
+  lastName     String
+  email        String   @unique
+  phone        String?
+  password     String
+  profileImage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  doctor      Doctor?
+  patient     Patient?
+  pathologist Pathologist?
+}
+
+model Location {
+  id       String   @id @default(cuid())
+  name     String
+  city     String
+  state    String
+  zipCode  String
+  branches Branch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Branch {
+  id            String         @id @default(cuid())
+  name          String
+  phone         String?
+  locationId    String
+  location      Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  departments   Department[]
+  labs          Laboratory[]
+  appointments  Appointment[]
+  guestBookings GuestBooking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([locationId])
+}
+
+model Department {
+  id             String   @id @default(cuid())
+  branchId       String
+  name           String
+  branch         Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  doctors        Doctor[]
+  suggestedTests Test[]   @relation("DeptSuggestedTests")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branchId])
+}
+
+model Doctor {
+  id              String            @id @default(cuid())
+  userId          String            @unique
+  qualification   String
+  experienceYears Int
+  departmentId    String
+  isApproved      Boolean           @default(false)
+  approvedAt      DateTime?
+  rejectedReason  String?
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department      Department        @relation(fields: [departmentId], references: [id])
+  specialties     DoctorSpecialty[]
+  appointments    Appointment[]
+  labReports      LabReport[]
+  ratings         DoctorRating[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([departmentId])
+}
+
+model Patient {
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  medicalHistory String?       @db.Text
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  labReports     LabReport[]
+  ratings        DoctorRating[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Pathologist {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  qualification   String
+  specialization  String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  labReports      LabReport[]
+  verifiedResults TestResult[]  @relation("PathologistVerifications")
+  assignedTests   TestOrder[]   @relation("AssignedTests")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Laboratory {
+  id       String      @id @default(cuid())
+  branchId String
+  name     String
+  labType  String?
+  branch   Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  reports  LabReport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branchId])
+}
+
+model Specialty {
+  id      String            @id @default(cuid())
+  name    String            @unique
+  doctors DoctorSpecialty[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DoctorSpecialty {
+  doctorId    String
+  specialtyId String
+  doctor      Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@id([doctorId, specialtyId])
+  @@index([doctorId])
+  @@index([specialtyId])
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  patientId       String
+  doctorId        String
+  branchId        String
+  appointmentDate DateTime
+  appointmentTime String
+  status          AppointmentStatus @default(Scheduled)
+  notes           String?           @db.Text
+  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor          Doctor            @relation(fields: [doctorId], references: [id])
+  branch          Branch            @relation(fields: [branchId], references: [id])
+  testOrders      TestOrder[]
+  rating          DoctorRating?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([branchId])
+  @@index([appointmentDate])
+}
+
+model LabReport {
+  id            String       @id @default(cuid())
+  patientId     String
+  labId         String
+  pathologistId String?
+  doctorId      String?
+  reportName    String
+  reportDate    DateTime
+  filePath      String
+  status        ReportStatus @default(Pending)
+  notes         String?      @db.Text
+  patient       Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  lab           Laboratory   @relation(fields: [labId], references: [id])
+  pathologist   Pathologist? @relation(fields: [pathologistId], references: [id])
+  doctor        Doctor?      @relation(fields: [doctorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([labId])
+  @@index([pathologistId])
+  @@index([doctorId])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([otp])
+}
+
+model DiagnosticTest {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  category    String
+  isAvailable Boolean  @default(true)
+
+  bookingItems GuestBookingItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GuestBooking {
+  id          String             @id @default(cuid())
+  guestEmail  String
+  guestName   String?
+  guestPhone  String?
+  accessCode  String             @unique
+  otp         String?
+  otpExpiresAt DateTime?
+  branchId    String
+  totalAmount Float
+  status      GuestBookingStatus @default(Pending)
+  reportPath  String?
+  notes       String?            @db.Text
+
+  branch Branch             @relation(fields: [branchId], references: [id])
+  items  GuestBookingItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([guestEmail])
+  @@index([accessCode])
+  @@index([branchId])
+}
+
+model GuestBookingItem {
+  id        String         @id @default(cuid())
+  bookingId String
+  testId    String
+  quantity  Int            @default(1)
+  price     Float
+
+  booking GuestBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  test    DiagnosticTest @relation(fields: [testId], references: [id])
+
+  @@index([bookingId])
+  @@index([testId])
+}
+
+// ============================================
+// TEST ORDERING SYSTEM (Doctor Dashboard)
+// ============================================
+
+enum TestCategory {
+  LAB
+  IMAGING
+  PROCEDURE
+}
+
+enum TestInputType {
+  NUMERIC
+  TEXT
+  FILE
+}
+
+enum TestOrderStatus {
+  ORDERED
+  IN_PROGRESS
+  PATHOLOGIST_VERIFIED
+  DOCTOR_VERIFIED
+  DELIVERED
+}
+
+// Master Test Table - Single source of truth for all tests
+model Test {
+  id                  String        @id @default(cuid())
+  name                String
+  category            TestCategory  @default(LAB)
+  isGeneral           Boolean       @default(false)
+  isMandatory         Boolean       @default(false)
+  departmentId        String?
+  department          Department?   @relation("DeptSuggestedTests", fields: [departmentId], references: [id])
+  inputType           TestInputType @default(NUMERIC)
+  unit                String?
+  referenceRange      String?
+  price               Float         @default(0)
+  requiresPathologist Boolean       @default(true)
+  isActive            Boolean       @default(true)
+
+  testOrders TestOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([category])
+  @@index([isGeneral])
+}
+
+// Bridge table linking Appointments to Tests
+model TestOrder {
+  id                    String          @id @default(cuid())
+  appointmentId         String
+  testId                String
+  assignedPathologistId String?
+  status                TestOrderStatus @default(ORDERED)
+  clinicalNote          String?         @db.Text
+  priority              String          @default("Normal")
+
+  appointment         Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  test                Test         @relation(fields: [testId], references: [id])
+  assignedPathologist Pathologist? @relation("AssignedTests", fields: [assignedPathologistId], references: [id])
+  testResult          TestResult?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([appointmentId])
+  @@index([testId])
+  @@index([assignedPathologistId])
+  @@index([status])
+}
+
+// Test Results entered by Pathologist
+model TestResult {
+  id           String    @id @default(cuid())
+  testOrderId  String    @unique
+  resultData   Json
+  impression   String?   @db.Text
+  reportFile   String?   // Path to downloadable PDF report
+  verifiedById String?
+  verifiedAt   DateTime?
+
+  testOrder  TestOrder    @relation(fields: [testOrderId], references: [id], onDelete: Cascade)
+  verifiedBy Pathologist? @relation("PathologistVerifications", fields: [verifiedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([verifiedById])
+}
+
+model DoctorRating {
+  id            String      @id @default(cuid())
+  doctorId      String
+  patientId     String
+  appointmentId String      @unique  // One rating per appointment
+  rating        Int         // 1-5 stars
+  feedback      String?     @db.Text
+  
+  doctor        Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([doctorId])
+  @@index([patientId])
+}
+
