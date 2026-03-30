@@ -1,5 +1,3 @@
-// Prisma Schema for NEXCARE Healthcare System
-// Matches University of Chittagong CSE616 capstone design
 
 generator client {
   provider = "prisma-client-js"
@@ -305,9 +303,6 @@ model GuestBookingItem {
   @@index([testId])
 }
 
-// ============================================
-// TEST ORDERING SYSTEM (Doctor Dashboard)
-// ============================================
 
 enum TestCategory {
   LAB
